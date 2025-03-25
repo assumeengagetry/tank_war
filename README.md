@@ -1,18 +1,33 @@
-## Getting Started
+# Java大作业 - 坦克大战游戏
 
-Welcome to the VS Code Java world. Here is a guideline to help you get started to write Java code in Visual Studio Code.
+## 基本需求
+- 初始包含：
+  - 2种敌方坦克
+  - 1个玩家坦克
+- 每个坦克特性：
+  - 可发射5发/弹夹的子弹
+  - 子弹具备光线反射特性（最多反弹3次后消失）
+  - 支持单发/连发两种射击模式
+  - 弹夹打空后需5秒装弹时间
 
-## Folder Structure
+## 地形系统
+4种地形类型：
 
-The workspace contains two folders by default, where:
+| 地形   | 子弹交互                 | 坦克交互         |
+|--------|--------------------------|------------------|
+| 铁墙   | 子弹反射，墙体不破坏     | 不可穿越         |
+| 砖墙   | 子弹反射后墙体破碎       | 不可穿越         |
+| 草丛   | 子弹穿透，植被被击碎     | 可穿越           |
+| 河水   | 子弹穿透                 | 接触即毁         |
 
-- `src`: the folder to maintain sources
-- `lib`: the folder to maintain dependencies
+*所有地形都无法被坦克直接破坏*
 
-Meanwhile, the compiled output files will be generated in the `bin` folder by default.
+## 核心规则
+1. **胜负条件**：
+   - 胜利：存活状态下消灭全部敌方坦克
+   - 失败：玩家坦克被击中或进入河流
 
-> If you want to customize the folder structure, open `.vscode/settings.json` and update the related settings there.
-
-## Dependency Management
-
-The `JAVA PROJECTS` view allows you to manage your dependencies. More details can be found [here](https://github.com/microsoft/vscode-java-dependency#manage-dependencies).
+2. **特殊机制**：
+   - 坦克进入河流立即死亡
+   - 被子弹擦碰即判定死亡
+   - 实现类似《元气骑士》的锻练走位

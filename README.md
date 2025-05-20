@@ -1,18 +1,6 @@
-## Getting Started
 
-Welcome to the VS Code Java world. Here is a guideline to help you get started to write Java code in Visual Studio Code.
-
-## Folder Structure
-
-The workspace contains two folders by default, where:
-
-- `src`: the folder to maintain sources
-- `lib`: the folder to maintain dependencies
-
-Meanwhile, the compiled output files will be generated in the `bin` folder by default.
-
-> If you want to customize the folder structure, open `.vscode/settings.json` and update the related settings there.
-
-## Dependency Management
-
-The `JAVA PROJECTS` view allows you to manage your dependencies. More details can be found [here](https://github.com/microsoft/vscode-java-dependency#manage-dependencies).
+这个项目的具体架构如下：
+    oringin_object是一切开始，是最初的类
+    之后是继承自他的（playertank enermytank missile wall steelwall grass river等等）
+    然后是Panel这边去给他进行每一次按键的监听维护，还有初始化位置等等
+    Direction 是方向的枚举

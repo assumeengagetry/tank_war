@@ -1,23 +1,46 @@
+import java.awt.GraphicsDevice;
+import java.awt.GraphicsEnvironment;
 import javax.swing.JFrame;
+import javax.swing.SwingUtilities;
 
 public class App {
+    private static JFrame frame;
+    
     public static void main(String[] args) {
-        JFrame frame = new JFrame("Tank Wars");
-        panel gamePanel = new panel(); // Assuming GamePanel is a class that extends JPanel or similar
-        
-        frame.add(gamePanel); // Add the game panel to the frame
-        frame.setResizable(false); // Prevent resizing of the window
-        frame.setLocationRelativeTo(null); // Center the window on the screen
-        frame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
-        frame.setSize(800, 600);
-        frame.setVisible(true);
-        
-        gamePanel.startGame(); // Start the game logic, assuming startGame is a method in GamePanel
-
-        // Additional setup can be done here, such as adding components to the frame.
-        
-        // Note: In a real application, you would likely want to use SwingUtilities.invokeLater to ensure
-        // that the GUI is created on the Event Dispatch Thread (EDT).
+        SwingUtilities.invokeLater(() -> {
+            frame = new JFrame("坦克大战");
+            panel gamePanel = panel.createGamePanel();
+            
+            frame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
+            frame.add(gamePanel);
+            frame.setResizable(true); // 允许调整大小以支持全屏
+            frame.pack();
+            frame.setLocationRelativeTo(null);
+            frame.setVisible(true);
+            
+            gamePanel.startGame();
+        });
     }
+    
+    // 提供切换全屏的方法
+    public static void toggleFullscreen() {
+        GraphicsDevice device = GraphicsEnvironment
+            .getLocalGraphicsEnvironment()
+            .getDefaultScreenDevice();
+            
+        if (frame.isUndecorated()) {
+            // 退出全屏
+            device.setFullScreenWindow(null);
+            frame.dispose();
+            frame.setUndecorated(false);
+            frame.setVisible(true);
+        } else {
+            // 进入全屏
+            frame.dispose();
+            frame.setUndecorated(true);
+            frame.setVisible(true);
+            device.setFullScreenWindow(frame);
+        }
     }
+}
 

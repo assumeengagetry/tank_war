@@ -44,8 +44,7 @@ public class PlayerTank extends Tank {
      * @param y 初始Y坐标
      * @param direction 初始朝向
      * @param image 坦克图片
-     */
-    public PlayerTank(int x, int y, Direction direction, BufferedImage image) {
+     */    public PlayerTank(int x, int y, Direction direction, BufferedImage image) {
         super(x, y, direction, image);
         this.lives = INITIAL_LIVES;
         this.score = 0;
@@ -53,21 +52,27 @@ public class PlayerTank extends Tank {
         this.keys = new boolean[256];  // 初始化按键状态数组
         this.currentMissiles = MAX_MISSILES;
         this.isReloading = false;
+        this.speed = 5; // 设置坦克移动速度
     }
     
     /**
      * 处理按键按下事件
      * 这里展示了如何使用数组来跟踪按键状态
-     */
-    public void keyHandlePresss(int keyCode) {
-        keys[keyCode] = true;
+     */    public void keyHandlePresss(int keyCode) {
+        if (keyCode >= 0 && keyCode < keys.length) {
+            keys[keyCode] = true;
+            System.out.println("键盘按下：" + keyCode); // 调试输出
+        }
     }
     
     /**
      * 处理按键释放事件
      */
     public void keyHandleRelease(int keyCode) {
-        keys[keyCode] = false;
+        if (keyCode >= 0 && keyCode < keys.length) {
+            keys[keyCode] = false;
+            System.out.println("键盘释放：" + keyCode); // 调试输出
+        }
     }
     
     /**
@@ -86,42 +91,43 @@ public class PlayerTank extends Tank {
             isReloading = false;
             currentMissiles = MAX_MISSILES;
         }
-        
-        // 处理移动输入
+        int oldX = x, oldY = y;
+        boolean moved = false;
+        // 只允许一次move，按优先级顺序
         if (keys[KeyEvent.VK_UP]) {
             direction = Direction.UP;
-            y = Math.max(0, y - speed);
-        }
-        if (keys[KeyEvent.VK_DOWN]) {
+            image = pictures.playerTankUp;
+            move(Direction.UP);
+            moved = true;
+        } else if (keys[KeyEvent.VK_DOWN]) {
             direction = Direction.DOWN;
-            y = Math.min(600 - height, y + speed);
-        }
-        if (keys[KeyEvent.VK_LEFT]) {
+            image = pictures.playerTankDown;
+            move(Direction.DOWN);
+            moved = true;
+        } else if (keys[KeyEvent.VK_LEFT]) {
             direction = Direction.LEFT;
-            x = Math.max(0, x - speed);
-        }
-        if (keys[KeyEvent.VK_RIGHT]) {
+            image = pictures.playerTankLeft;
+            move(Direction.LEFT);
+            moved = true;
+        } else if (keys[KeyEvent.VK_RIGHT]) {
             direction = Direction.RIGHT;
-            x = Math.min(800 - width, x + speed);
+            image = pictures.playerTankRight;
+            move(Direction.RIGHT);
+            moved = true;
         }
-        
+        if (moved && (oldX != x || oldY != y)) {
+            System.out.println("玩家坦克移动: " + oldX + "," + oldY + " -> " + x + "," + y);
+        }
         // 处理射击
-        if (!isReloading && currentMissiles > 0 && 
-            keys[KeyEvent.VK_SPACE] && 
+        if (keys[KeyEvent.VK_SPACE] && 
             System.currentTimeMillis() - lastFireTime >= FIRE_COOLDOWN) {
-            
-            if (fire()) {  // 如果成功开火
-                lastFireTime = System.currentTimeMillis();
-                currentMissiles--;
-                
-                if (currentMissiles == 0) {
-                    isReloading = true;
-                    reloadStartTime = System.currentTimeMillis();
-                }
-            }
+            int missileX = x + width / 2;
+            int missileY = y + height / 2;
+            Missile missile = new Missile(missileX, missileY, direction, this);
+            missiles.add(missile);
+            lastFireTime = System.currentTimeMillis();
+            System.out.println("发射导弹！位置: " + missileX + "," + missileY);
         }
-        
-        // 更新导弹
         missiles.removeIf(missile -> !missile.isAlive());
         missiles.forEach(GameObject::update);
     }

@@ -1,5 +1,4 @@
 import java.awt.image.BufferedImage;
-import java.io.File;
 import java.io.IOException;
 import javax.imageio.ImageIO;
 
@@ -67,35 +66,54 @@ public class pictures {
     static {
         try {
             // 加载玩家坦克图片
-            playerTankUp = ImageIO.read(new File("E:\\_SCUfuckingme_\\tank_war\\src\\resources\\enemy3U.gif"));
-            playerTankDown = ImageIO.read(new File("E:\\_SCUfuckingme_\\tank_war\\src\\resources\\enemy3D.gif"));
-            playerTankLeft = ImageIO.read(new File("E:\\_SCUfuckingme_\\tank_war\\src\\resources\\enemy3L.gif"));
-            playerTankRight = ImageIO.read(new File("E:\\_SCUfuckingme_\\tank_war\\src\\resources\\enemy3R.gif"));
+            playerTankUp = ImageIO.read(pictures.class.getResourceAsStream("/resources/enemy3U.gif"));
+            playerTankDown = ImageIO.read(pictures.class.getResourceAsStream("/resources/enemy3D.gif"));
+            playerTankLeft = ImageIO.read(pictures.class.getResourceAsStream("/resources/enemy3L.gif"));
+            playerTankRight = ImageIO.read(pictures.class.getResourceAsStream("/resources/enemy3R.gif"));
             
             // 加载第一类敌方坦克图片
-            enermy1TankUp = ImageIO.read(new File("E:\\_SCUfuckingme_\\tank_war\\src\\resources\\enemy1U.gif"));
-            enermy1TankDown = ImageIO.read(new File("E:\\_SCUfuckingme_\\tank_war\\src\\resources\\enemy1D.gif"));
-            enermy1TankLeft = ImageIO.read(new File("E:\\_SCUfuckingme_\\tank_war\\src\\resources\\enemy1L.gif"));
-            enermy1TankRight = ImageIO.read(new File("E:\\_SCUfuckingme_\\tank_war\\src\\resources\\enemy1R.gif"));
+            enermy1TankUp = ImageIO.read(pictures.class.getResourceAsStream("/resources/enemy1U.gif"));
+            enermy1TankDown = ImageIO.read(pictures.class.getResourceAsStream("/resources/enemy1D.gif"));
+            enermy1TankLeft = ImageIO.read(pictures.class.getResourceAsStream("/resources/enemy1L.gif"));
+            enermy1TankRight = ImageIO.read(pictures.class.getResourceAsStream("/resources/enemy1R.gif"));
             
             // 加载第二类敌方坦克图片
-            enermy2TankUp = ImageIO.read(new File("E:\\_SCUfuckingme_\\tank_war\\src\\resources\\enemy2U.gif"));
-            enermy2TankDown = ImageIO.read(new File("E:\\_SCUfuckingme_\\tank_war\\src\\resources\\enemy2D.gif"));
-            enermy2TankLeft = ImageIO.read(new File("E:\\_SCUfuckingme_\\tank_war\\src\\resources\\enemy2L.gif"));
-            enermy2TankRight = ImageIO.read(new File("E:\\_SCUfuckingme_\\tank_war\\src\\resources\\enemy2R.gif"));
+            enermy2TankUp = ImageIO.read(pictures.class.getResourceAsStream("/resources/enemy2U.gif"));
+            enermy2TankDown = ImageIO.read(pictures.class.getResourceAsStream("/resources/enemy2D.gif"));
+            enermy2TankLeft = ImageIO.read(pictures.class.getResourceAsStream("/resources/enemy2L.gif"));
+            enermy2TankRight = ImageIO.read(pictures.class.getResourceAsStream("/resources/enemy2R.gif"));
             
             // 加载地形和道具图片
-            grass = ImageIO.read(new File("E:\\_SCUfuckingme_\\tank_war\\src\\resources\\grass.gif"));
-            steel = ImageIO.read(new File("E:\\_SCUfuckingme_\\tank_war\\src\\resources\\steel.gif"));
-            steels = ImageIO.read(new File("E:\\_SCUfuckingme_\\tank_war\\src\\resources\\steels.gif"));
-            wall = ImageIO.read(new File("E:\\_SCUfuckingme_\\tank_war\\src\\resources\\wall.gif"));
-            walls = ImageIO.read(new File("E:\\_SCUfuckingme_\\tank_war\\src\\resources\\walls.gif"));
-            tankMissile = ImageIO.read(new File("E:\\_SCUfuckingme_\\tank_war\\src\\resources\\tankMissile.gif"));
-            water = ImageIO.read(new File("E:\\_SCUfuckingme_\\tank_war\\src\\resources\\water.gif"));
+            grass = ImageIO.read(pictures.class.getResourceAsStream("/resources/grass.gif"));
+            steel = ImageIO.read(pictures.class.getResourceAsStream("/resources/steel.gif"));
+            steels = ImageIO.read(pictures.class.getResourceAsStream("/resources/steels.gif"));
+            wall = ImageIO.read(pictures.class.getResourceAsStream("/resources/wall.gif"));
+            walls = ImageIO.read(pictures.class.getResourceAsStream("/resources/walls.gif"));
+            tankMissile = ImageIO.read(pictures.class.getResourceAsStream("/resources/tankmissile.gif"));
+            water = ImageIO.read(pictures.class.getResourceAsStream("/resources/water.gif"));
+
+            // 验证图片加载是否成功
+            if (playerTankUp == null) {
+                throw new IOException("无法加载玩家坦克图片");
+            }
         } catch (IOException e) {
-            // 资源加载失败时打印堆栈跟踪
-            // 在实际应用中，应该添加更好的错误处理
-            e.printStackTrace();
+            System.err.println("加载游戏资源失败！请确保resources目录中包含所有必需的图片文件。");
+            System.err.println("错误详情：" + e.getMessage());
+            System.err.println("当前工作目录：" + System.getProperty("user.dir"));
+            e.printStackTrace();            System.err.println("图片文件列表：");
+            for (String resourcePath : new String[] {
+                "/resources/enemy3U.gif", "/resources/enemy3D.gif", "/resources/enemy3L.gif", "/resources/enemy3R.gif",
+                "/resources/enemy1U.gif", "/resources/enemy1D.gif", "/resources/enemy1L.gif", "/resources/enemy1R.gif",
+                "/resources/grass.gif", "/resources/steel.gif", "/resources/steels.gif",
+                "/resources/wall.gif", "/resources/walls.gif", "/resources/tankmissile.gif",
+                "/resources/water.gif"
+            }) {
+                System.err.println(resourcePath + ": " + 
+                    (pictures.class.getResourceAsStream(resourcePath) != null ? "找到" : "未找到"));
+            }
+            
+            // 如果资源加载失败，游戏无法继续运行
+            throw new RuntimeException("游戏资源加载失败", e);
         }
     }
     

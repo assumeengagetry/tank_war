@@ -89,11 +89,11 @@ public class EnermyTank extends Tank {
     /**
      * 改变坦克方向并更新图片
      * 展示了如何将相关的操作封装在一个方法中
-     */
-    private void changeDirection() {
+     */    private void changeDirection() {
         Direction[] directions = Direction.values();
         Direction newDirection = directions[(int)(Math.random() * directions.length)];
         direction = newDirection;
+        // 更新图片为对应方向的图片
         image = getInitialImage(newDirection);
     }
 

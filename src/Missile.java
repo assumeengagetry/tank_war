@@ -36,12 +36,12 @@ public class Missile extends GameObject {
      * @param y 初始Y坐标
      * @param direction 飞行方向
      * @param owner 发射者
-     */
-    public Missile(int x, int y, Direction direction, Tank owner) {
-        super(x, y, 10, 10, pictures.tankMissile); 
-        this.speed = 10;         // 导弹速度比坦克快
+     */    public Missile(int x, int y, Direction direction, Tank owner) {
+        super(x, y, 8, 8, pictures.tankMissile); // 调整导弹大小
+        this.speed = 15;         // 提高导弹速度
         this.direction = direction;
         this.tankOwner = owner;
+        System.out.println("创建导弹：位置(" + x + "," + y + "), 方向:" + direction);
     }
 
     /**
@@ -50,12 +50,11 @@ public class Missile extends GameObject {
      * 1. 运动物理的实现
      * 2. 碰撞检测和处理
      * 3. 游戏对象生命周期管理
-     */
-    @Override
+     */    @Override
     public void update() {
         if (!isAlive) return;
 
-        // 根据方向更新位置，展示了switch表达式的现代用法
+        // 根据方向更新位置
         int oldX = x, oldY = y;  // 保存旧位置用于碰撞处理
         switch (direction) {
             case UP -> y -= speed;
@@ -63,6 +62,9 @@ public class Missile extends GameObject {
             case LEFT -> x -= speed;
             case RIGHT -> x += speed;
         }
+        
+        // 调试输出
+        System.out.println("导弹位置更新：" + x + "," + y);
 
         // 处理边界碰撞，展示了物理系统的实现
         boolean bounced = false;

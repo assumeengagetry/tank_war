@@ -22,6 +22,8 @@ public abstract class GameObject implements Collidable {
     protected int speed;  // 对象的移动速度
     protected boolean collidable = true;  // 对象是否可以碰撞
 
+    private static panel gamePanel;
+
     /**
      * 主构造器 - 创建游戏对象的完整版本
      * 构造器是特殊的方法，用于初始化对象的状态
@@ -107,4 +109,12 @@ public abstract class GameObject implements Collidable {
     public void setY(int y) { this.y = y; }
     public void setSpeed(int speed) { this.speed = speed; }
     public int getSpeed() { return speed; }
+
+    public static void setPanel(panel p) {
+        gamePanel = p;
+    }
+    
+    public static panel getPanel() {
+        return gamePanel;
+    }
 }

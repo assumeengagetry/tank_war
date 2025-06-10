@@ -1,35 +1,35 @@
 import java.awt.Graphics;
 
 /**
- * Grass类代表游戏中的草地，坦克可以穿过，但会遮挡坦克
+ * Water类代表游戏中的水面，坦克不能穿过
  */
-public class Grass extends GameObject {
+public class Water extends GameObject {
     
     /**
-     * 草地构造器
+     * 水面构造器
      * @param x X坐标
      * @param y Y坐标
      * @param width 宽度
      * @param height 高度
      */
-    public Grass(int x, int y, int width, int height) {
-        super(x, y, width, height, pictures.grass);
+    public Water(int x, int y, int width, int height) {
+        super(x, y, width, height, pictures.water);
     }
 
     @Override
     public void update() {
-        // 草地是静态物体，不需要更新
+        // 水面是静态物体，不需要更新
     }
 
     @Override
     public void draw(Graphics g) {
         if (!isAlive || image == null) return;
-        // 绘制草地图片
+        // 绘制水面图片
         g.drawImage(image, x, y, width, height, null);
     }
 
     @Override
     public void handleCollision(GameObject other) {
-        // 草地可以穿过，不处理碰撞
+        // 水面不能被穿过，在碰撞检测时处理
     }
 }

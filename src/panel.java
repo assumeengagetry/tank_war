@@ -29,19 +29,13 @@ import javax.swing.*;
  */
 public class panel extends JPanel implements KeyListener {
     private static final long serialVersionUID = 1L;
-    private static final int GAME_WIDTH = 800;   // 游戏窗口宽度
-    private static final int GAME_HEIGHT = 600;  // 游戏窗口高度
-    
-    // 使用CopyOnWriteArrayList实现线程安全的游戏对象管理
+    private static final int GAME_WIDTH = 1024;   // 游戏窗口宽度
+    private static final int GAME_HEIGHT = 768;  // 游戏窗口高度
+      // 使用CopyOnWriteArrayList实现线程安全的游戏对象管理
     private final CopyOnWriteArrayList<GameObject> gameObjects;
     private transient PlayerTank playerTank;    // transient表示不序列化此字段
     private int score = 0;                      // 游戏得分
     private boolean gameOver = false;           // 游戏结束标志
-    
-    // 用于全屏缩放的变量
-    private double scaleFactor = 1.0;           // 缩放因子
-    private int xOffset = 0;                    // X轴偏移
-    private int yOffset = 0;                    // Y轴偏移
 
     /**
      * 静态工厂方法，创建游戏面板实例
@@ -59,6 +53,8 @@ public class panel extends JPanel implements KeyListener {
      */
     private panel() {
         gameObjects = new CopyOnWriteArrayList<>();
+        GameObject.setPanel(this);
+        System.out.println("游戏面板已创建！"); // 调试输出
     }
     
     /**
@@ -69,9 +65,8 @@ public class panel extends JPanel implements KeyListener {
      */
     private void setupPanel() {
         SwingUtilities.invokeLater(() -> {
-            setBackground(Color.BLACK);
-            setPreferredSize(new Dimension(GAME_WIDTH, GAME_HEIGHT));
             setFocusable(true);
+            requestFocus();
             addKeyListener(this);
             initializeGame();
         });
@@ -85,12 +80,16 @@ public class panel extends JPanel implements KeyListener {
      * 3. 创建游戏场景
      */
     private void initializeGame() {
-        // 创建玩家坦克        playerTank = new PlayerTank(100, 100, Direction.UP, pictures.playerTankUp);
+        // 创建玩家坦克
+        playerTank = new PlayerTank(GAME_WIDTH / 2, GAME_HEIGHT - 100, Direction.UP, pictures.playerTankUp);
         gameObjects.add(playerTank);
         
         // 创建敌方坦克
         for (int i = 0; i < 3; i++) {
-            EnermyTank enemyTank = new EnermyTank(100 + i * 200, 400, Direction.DOWN);
+            // 随机选择敌方坦克类型（1号或2号坦克）
+            boolean isType1 = Math.random() < 0.5;
+            Direction dir = Direction.DOWN;
+            EnermyTank enemyTank = new EnermyTank(100 + i * 200, 400, dir);
             gameObjects.add(enemyTank);
         }
 
@@ -104,23 +103,40 @@ public class panel extends JPanel implements KeyListener {
      * 1. 游戏关卡设计
      * 2. 使用循环创建重复元素
      * 3. 不同类型墙体的放置
-     */
-    private void createWalls() {
+     */    private void createWalls() {
+        // 边界的大小
+        final int CELL_SIZE = 50;
+
         // 创建边界墙（不可破坏）
-        for (int x = 0; x < GAME_WIDTH; x += 50) {
-            gameObjects.add(new Wall(x, 0, 50, 50, false));
-            gameObjects.add(new Wall(x, GAME_HEIGHT - 50, 50, 50, false));
+        for (int x = 0; x < GAME_WIDTH; x += CELL_SIZE) {
+            gameObjects.add(new Wall(x, 0, CELL_SIZE, CELL_SIZE, false));
+            gameObjects.add(new Wall(x, GAME_HEIGHT - CELL_SIZE, CELL_SIZE, CELL_SIZE, false));
         }
-        for (int y = 50; y < GAME_HEIGHT - 50; y += 50) {
-            gameObjects.add(new Wall(0, y, 50, 50, false));
-            gameObjects.add(new Wall(GAME_WIDTH - 50, y, 50, 50, false));
+        for (int y = CELL_SIZE; y < GAME_HEIGHT - CELL_SIZE; y += CELL_SIZE) {
+            gameObjects.add(new Wall(0, y, CELL_SIZE, CELL_SIZE, false));
+            gameObjects.add(new Wall(GAME_WIDTH - CELL_SIZE, y, CELL_SIZE, CELL_SIZE, false));
         }
 
-        // 创建可破坏的内部墙
-        gameObjects.add(new Wall(200, 200, 50, 50, true));
-        gameObjects.add(new Wall(200, 250, 50, 50, true));
-        gameObjects.add(new Wall(400, 300, 50, 50, true));
-        gameObjects.add(new Wall(450, 300, 50, 50, true));
+        // 创建地图中的水面
+        gameObjects.add(new Water(200, 300, CELL_SIZE, CELL_SIZE));
+        gameObjects.add(new Water(250, 300, CELL_SIZE, CELL_SIZE));
+        gameObjects.add(new Water(300, 300, CELL_SIZE, CELL_SIZE));
+        gameObjects.add(new Water(600, 400, CELL_SIZE, CELL_SIZE));
+        gameObjects.add(new Water(650, 400, CELL_SIZE, CELL_SIZE));
+
+        // 创建草地
+        gameObjects.add(new Grass(400, 200, CELL_SIZE, CELL_SIZE));
+        gameObjects.add(new Grass(450, 200, CELL_SIZE, CELL_SIZE));
+        gameObjects.add(new Grass(500, 200, CELL_SIZE, CELL_SIZE));
+        gameObjects.add(new Grass(100, 500, CELL_SIZE, CELL_SIZE));
+        gameObjects.add(new Grass(150, 500, CELL_SIZE, CELL_SIZE));
+
+        // 创建可破坏的墙
+        gameObjects.add(new Wall(200, 200, CELL_SIZE, CELL_SIZE, true));
+        gameObjects.add(new Wall(250, 200, CELL_SIZE, CELL_SIZE, true));
+        gameObjects.add(new Wall(400, 300, CELL_SIZE, CELL_SIZE, true));
+        gameObjects.add(new Wall(400, 350, CELL_SIZE, CELL_SIZE, true));
+        gameObjects.add(new Wall(700, 500, CELL_SIZE, CELL_SIZE, true));
     }
 
     /**
@@ -130,57 +146,14 @@ public class panel extends JPanel implements KeyListener {
      * 2. 更新游戏状态
      * 3. 检测碰撞
      * 4. 重绘画面
-     */
-    public void startGame() {
-        Timer timer = new Timer(16, e -> {
-            if (!gameOver) {
-                updateGame();
-                checkCollisions();
-                repaint();
-            }
+     */    public void startGame() {
+        System.out.println("游戏开始！"); // 调试输出
+        Timer timer = new Timer(10, e -> { // 加快更新频率
+            updateGame();
+            checkCollisions();
+            repaint();
         });
         timer.start();
-    }
-
-    /**
-     * 更新缩放和偏移值
-     * 展示了如何实现全屏自适应：
-     * 1. 计算最佳缩放比例
-     * 2. 计算居中偏移
-     * 3. 保持宽高比
-     */
-    private void updateScaleAndOffset() {
-        // 计算新的缩放比例
-        scaleFactor = Math.min(
-            getWidth() / (double) GAME_WIDTH,
-            getHeight() / (double) GAME_HEIGHT
-        );
-        
-        // 计算居中偏移
-        xOffset = (int)((getWidth() - GAME_WIDTH * scaleFactor) / 2);
-        yOffset = (int)((getHeight() - GAME_HEIGHT * scaleFactor) / 2);
-    }
-
-    /**
-     * 碰撞检测系统
-     * 展示了：
-     * 1. 两层循环的碰撞检测算法
-     * 2. 使用Rectangle进行相交测试
-     * 3. 触发对象的碰撞响应
-     */
-    private void checkCollisions() {
-        for (GameObject obj1 : gameObjects) {
-            if (!obj1.isCollidable()) continue;
-
-            for (GameObject obj2 : gameObjects) {
-                if (obj1 == obj2 || !obj2.isCollidable()) continue;
-
-                if (obj1.getBounds().intersects(obj2.getBounds())) {
-                    obj1.handleCollision(obj2);
-                    obj2.handleCollision(obj1);
-                }
-            }
-        }
     }
 
     /**
@@ -192,33 +165,69 @@ public class panel extends JPanel implements KeyListener {
      * 4. 维持敌人数量
      */
     private void updateGame() {
-        gameObjects.removeIf(obj -> !obj.isAlive());
-        
-        for (GameObject obj : gameObjects) {
-            obj.update();
-        }
+        if (gameOver) return;
 
+        // 更新所有游戏对象并清理死亡对象
+        gameObjects.forEach(GameObject::update);
+        gameObjects.removeIf(obj -> !obj.isAlive());        // 检查玩家状态
         if (!playerTank.isAlive()) {
             gameOver = true;
+            return;
         }
 
-        // 检查是否需要生成新的敌方坦克
+        // 检查并维持敌方坦克数量
         long enemyCount = gameObjects.stream()
-            .filter(obj -> obj instanceof EnermyTank)
-            .count();
-            
+                .filter(obj -> obj instanceof EnermyTank && obj.isAlive())
+                .count();
+        
         if (enemyCount < 3) {
             spawnNewEnemyTank();
+        }
+
+        // 如果击败了所有敌人，生成新一波敌人
+        if (enemyCount == 0) {
+            score += 1000; // 完成关卡奖励
+            // 创建新的敌人
+            for (int i = 0; i < 3; i++) {
+                spawnNewEnemyTank();
+            }
+        }
+    }
+
+    /**
+     * 碰撞检测系统
+     * 展示了：
+     * 1. 两层循环的碰撞检测算法
+     * 2. 使用Rectangle进行相交测试
+     * 3. 触发对象的碰撞响应
+     */
+    private void checkCollisions() {
+        if (gameOver) return;
+
+        for (GameObject obj1 : gameObjects) {
+            if (!(obj1 instanceof Collidable) || !obj1.isAlive()) continue;
+
+            for (GameObject obj2 : gameObjects) {
+                if (obj1 == obj2 || !(obj2 instanceof Collidable) || !obj2.isAlive()) continue;
+
+                if (((Collidable)obj1).getBounds().intersects(((Collidable)obj2).getBounds())) {
+                    ((Collidable)obj1).handleCollision(obj2);
+                }
+            }
         }
     }
 
     /**
      * 生成新的敌方坦克
      * 展示了随机数生成和敌人坦克生成逻辑
-     */
-    private void spawnNewEnemyTank() {
-        int x = (int) (Math.random() * (GAME_WIDTH - 100)) + 50;
-        EnermyTank enemyTank = new EnermyTank(x, 50, Direction.DOWN);
+     */    private void spawnNewEnemyTank() {
+        // 在顶部随机位置生成新的敌方坦克
+        int x = 100 + (int)(Math.random() * (GAME_WIDTH - 200));
+        Direction[] directions = {Direction.DOWN, Direction.LEFT, Direction.RIGHT};
+        Direction randomDirection = directions[(int)(Math.random() * directions.length)];
+        
+        // 使用正确的方向初始化敌方坦克
+        EnermyTank enemyTank = new EnermyTank(x, 50, randomDirection);
         gameObjects.add(enemyTank);
     }
 
@@ -228,78 +237,62 @@ public class panel extends JPanel implements KeyListener {
      * 1. 使用Graphics2D进行绘制
      * 2. 实现缩放和偏移
      * 3. 分层渲染（游戏对象和UI）
-     */
-    @Override
+     */    @Override
     protected void paintComponent(Graphics g) {
         super.paintComponent(g);
         Graphics2D g2d = (Graphics2D) g;
-        
-        // 计算缩放和偏移
-        updateScaleAndOffset();
-        
-        // 应用变换
-        g2d.translate(xOffset, yOffset);
-        g2d.scale(scaleFactor, scaleFactor);
-        
-        // 清除背景
-        g2d.setColor(Color.BLACK);
+
+        // 设置渲染品质
+        g2d.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
+        g2d.setRenderingHint(RenderingHints.KEY_RENDERING, RenderingHints.VALUE_RENDER_QUALITY);
+
+        // 绘制背景
+        g2d.setColor(new Color(33, 33, 33));
         g2d.fillRect(0, 0, GAME_WIDTH, GAME_HEIGHT);
-        
+
         // 绘制所有游戏对象
-        for (GameObject obj : gameObjects) {
-            obj.draw(g2d);
-        }
-        
+        gameObjects.forEach(obj -> obj.draw(g2d));
+
         // 绘制UI
         drawUI(g2d);
-        
-        // 还原变换
-        g2d.scale(1/scaleFactor, 1/scaleFactor);
-        g2d.translate(-xOffset, -yOffset);
-    }
 
-    /**
-     * 绘制游戏UI
-     * 展示了：
-     * 1. 文本渲染
-     * 2. 字体设置
-     * 3. 得分显示
-     */
-    private void drawUI(Graphics g) {
-        g.setColor(Color.WHITE);
-        g.setFont(new Font("Arial", Font.BOLD, 20));
-        g.drawString("Score: " + score, 20, 30);
-
+        // 如果游戏结束，绘制结束画面
         if (gameOver) {
-            drawGameOver(g);
+            drawGameOver(g2d);
         }
+    }    private void drawUI(Graphics g) {
+        g.setColor(Color.WHITE);
+        g.setFont(new Font("微软雅黑", Font.BOLD, 20));
+        
+        // 绘制分数和生命值
+        g.drawString("分数: " + score, 10, 30);
+        g.drawString("生命: " + playerTank.getLives(), 10, 60);
     }
 
-    /**
-     * 绘制游戏结束画面
-     * 展示了：
-     * 1. 半透明效果的实现
-     * 2. 文本居中绘制
-     * 3. 多行文本布局
-     */
     private void drawGameOver(Graphics g) {
-        String message = "Game Over - Score: " + score;
-        g.setColor(new Color(0, 0, 0, 180));
-        g.fillRect(0, 0, GAME_WIDTH, GAME_HEIGHT);
-        
-        g.setColor(Color.WHITE);
-        g.setFont(new Font("Arial", Font.BOLD, 36));
-        FontMetrics metrics = g.getFontMetrics();
-        int x = (GAME_WIDTH - metrics.stringWidth(message)) / 2;
-        int y = (GAME_HEIGHT - metrics.getHeight()) / 2 + metrics.getAscent();
-        g.drawString(message, x, y);
-        
-        String restart = "Press ENTER to restart";
-        g.setFont(new Font("Arial", Font.PLAIN, 20));
-        metrics = g.getFontMetrics();
-        x = (GAME_WIDTH - metrics.stringWidth(restart)) / 2;
-        y += metrics.getHeight() + 10;
-        g.drawString(restart, x, y);
+        // 创建半透明遮罩
+        Graphics2D g2d = (Graphics2D) g;
+        g2d.setColor(new Color(0, 0, 0, 180));
+        g2d.fillRect(0, 0, GAME_WIDTH, GAME_HEIGHT);
+
+        // 绘制游戏结束文本
+        g2d.setColor(Color.WHITE);
+        g2d.setFont(new Font("微软雅黑", Font.BOLD, 48));
+        String gameOverText = "游戏结束";
+        String scoreText = "最终分数: " + score;
+        String restartText = "按 R 键重新开始";
+
+        FontMetrics fm = g2d.getFontMetrics();
+        int x = (GAME_WIDTH - fm.stringWidth(gameOverText)) / 2;
+        int y = GAME_HEIGHT / 2 - 30;
+
+        g2d.drawString(gameOverText, x, y);
+        g2d.setFont(new Font("微软雅黑", Font.BOLD, 24));
+        fm = g2d.getFontMetrics();
+        x = (GAME_WIDTH - fm.stringWidth(scoreText)) / 2;
+        g2d.drawString(scoreText, x, y + 50);
+        x = (GAME_WIDTH - fm.stringWidth(restartText)) / 2;
+        g2d.drawString(restartText, x, y + 100);
     }
 
     /**
@@ -308,21 +301,15 @@ public class panel extends JPanel implements KeyListener {
      * 1. 游戏控制（重启、全屏）
      * 2. 玩家输入处理
      * 3. 事件委托
-     */
-    @Override
+     */    @Override
     public void keyPressed(KeyEvent e) {
-        if (gameOver && e.getKeyCode() == KeyEvent.VK_ENTER) {
-            resetGame();
+        if (gameOver) {
+            if (e.getKeyCode() == KeyEvent.VK_R) {
+                resetGame();
+            }
             return;
         }
-        
-        // F11键切换全屏
-        if (e.getKeyCode() == KeyEvent.VK_F11) {
-            App.toggleFullscreen();
-            revalidate(); // 重新验证布局
-            return;
-        }
-        
+        System.out.println("键盘按下事件：" + e.getKeyCode());
         if (playerTank != null) {
             playerTank.keyHandlePresss(e.getKeyCode());
         }
@@ -330,36 +317,20 @@ public class panel extends JPanel implements KeyListener {
 
     @Override
     public void keyReleased(KeyEvent e) {
-        if (playerTank != null) {
+        if (!gameOver && playerTank != null) {
+            System.out.println("键盘释放事件：" + e.getKeyCode());
             playerTank.keyHandleRelease(e.getKeyCode());
         }
     }
 
     @Override
-    public void keyTyped(KeyEvent e) {
-        // 不需要实现
-    }
+    public void keyTyped(KeyEvent e) {} // 不需要实现
 
-    /**
-     * 重置游戏状态
-     * 展示了游戏重新开始的逻辑
-     */
     private void resetGame() {
+        gameObjects.clear();
         gameOver = false;
         score = 0;
-        gameObjects.clear();
         initializeGame();
-    }
-
-    @Override
-    public Dimension getPreferredSize() {
-        Container parent = getParent();
-        if (parent != null && parent.getWidth() > 0) {
-            // 在全屏模式下，返回父容器的大小
-            return parent.getSize();
-        }
-        // 否则返回默认大小
-        return new Dimension(GAME_WIDTH, GAME_HEIGHT);
     }
 
     public void addScore(int points) {
@@ -372,5 +343,18 @@ public class panel extends JPanel implements KeyListener {
 
     public static int getGameHeight() {
         return GAME_HEIGHT;
+    }
+
+    /**
+     * 获取游戏对象列表
+     * @return 游戏中所有对象的列表
+     */
+    public static CopyOnWriteArrayList<GameObject> getGameObjects() {
+        return panel.createGamePanel().gameObjects;
+    }
+
+    @Override
+    public Dimension getPreferredSize() {
+        return new Dimension(GAME_WIDTH, GAME_HEIGHT);
     }
 }

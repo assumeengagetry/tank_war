@@ -85,7 +85,8 @@ public class panel extends JPanel implements KeyListener {
      * 3. 创建游戏场景
      */
     private void initializeGame() {
-        // 创建玩家坦克        playerTank = new PlayerTank(100, 100, Direction.UP, pictures.playerTankUp);
+        // 创建玩家坦克
+        playerTank = new PlayerTank(100, 100, Direction.UP, pictures.playerTankUp);
         gameObjects.add(playerTank);
         
         // 创建敌方坦克
@@ -94,33 +95,100 @@ public class panel extends JPanel implements KeyListener {
             gameObjects.add(enemyTank);
         }
 
-        // 创建围墙
+        // 创建地形和障碍物
         createWalls();
+        
+        // 创建一些装饰性草地（不在游戏对象列表中，只作为背景）
+        // 注：这些装饰性草地不会与对象交互，仅作视觉效果
     }
 
     /**
-     * 创建游戏场景中的墙体
+     * 创建游戏场景中的墙体和地形
      * 展示了：
-     * 1. 游戏关卡设计
-     * 2. 使用循环创建重复元素
+     * 1. 丰富的游戏关卡设计
+     * 2. 多种地形类型的使用
      * 3. 不同类型墙体的放置
+     * 4. 战术性地形布局
      */
     private void createWalls() {
-        // 创建边界墙（不可破坏）
+        // 创建边界墙（不可破坏的钢墙）
         for (int x = 0; x < GAME_WIDTH; x += 50) {
-            gameObjects.add(new Wall(x, 0, 50, 50, false));
-            gameObjects.add(new Wall(x, GAME_HEIGHT - 50, 50, 50, false));
+            gameObjects.add(Wall.createSteelWall(x, 0, 50, 50));
+            gameObjects.add(Wall.createSteelWall(x, GAME_HEIGHT - 50, 50, 50));
         }
         for (int y = 50; y < GAME_HEIGHT - 50; y += 50) {
-            gameObjects.add(new Wall(0, y, 50, 50, false));
-            gameObjects.add(new Wall(GAME_WIDTH - 50, y, 50, 50, false));
+            gameObjects.add(Wall.createSteelWall(0, y, 50, 50));
+            gameObjects.add(Wall.createSteelWall(GAME_WIDTH - 50, y, 50, 50));
         }
 
-        // 创建可破坏的内部墙
-        gameObjects.add(new Wall(200, 200, 50, 50, true));
-        gameObjects.add(new Wall(200, 250, 50, 50, true));
-        gameObjects.add(new Wall(400, 300, 50, 50, true));
-        gameObjects.add(new Wall(450, 300, 50, 50, true));
+        // 创建中心区域的砖墙群
+        gameObjects.add(Wall.createBrickGroup(200, 150, 100, 100));
+        gameObjects.add(Wall.createBrickGroup(500, 150, 100, 100));
+        
+        // 创建各种类型的钢墙组合
+        gameObjects.add(Wall.createSteelGroup(300, 300, 100, 50));
+        gameObjects.add(Wall.createSteelCrosswise(150, 350, 50, 50));
+        gameObjects.add(Wall.createSteelVertical(600, 280, 50, 100));
+        
+        // 创建一些单独的砖墙
+        gameObjects.add(Wall.createBrickWall(100, 300, 40, 40));
+        gameObjects.add(Wall.createBrickWall(680, 200, 40, 40));
+        
+        // 创建草地区域（提供掉蔽）
+        createGrassAreas();
+        
+        // 创建河水区域（危险地带）
+        createWaterAreas();
+    }
+    
+    /**
+     * 创建草地区域
+     * 提供掉蔽但可被摧毁的地形
+     */
+    private void createGrassAreas() {
+        // 上方草地群
+        for (int x = 250; x <= 350; x += 25) {
+            for (int y = 80; y <= 120; y += 25) {
+                gameObjects.add(new Grass(x, y, 25, 25));
+            }
+        }
+        
+        // 左下角草地
+        for (int x = 80; x <= 180; x += 30) {
+            for (int y = 450; y <= 520; y += 30) {
+                gameObjects.add(new Grass(x, y, 30, 30));
+            }
+        }
+        
+        // 右下角草地
+        for (int x = 600; x <= 700; x += 25) {
+            for (int y = 400; y <= 500; y += 25) {
+                gameObjects.add(new Grass(x, y, 25, 25));
+            }
+        }
+    }
+    
+    /**
+     * 创建河水区域
+     * 危险地带，坦克接触即死
+     */
+    private void createWaterAreas() {
+        // 中央河流
+        for (int x = 350; x <= 450; x += 25) {
+            gameObjects.add(new Water(x, 200, 25, 25));
+            gameObjects.add(new Water(x, 225, 25, 25));
+        }
+        
+        // 左侧水池
+        for (int x = 50; x <= 120; x += 25) {
+            for (int y = 200; y <= 250; y += 25) {
+                gameObjects.add(new Water(x, y, 25, 25));
+            }
+        }
+        
+        // 右侧小水池
+        gameObjects.add(new Water(650, 350, 50, 50));
+        gameObjects.add(new Water(700, 350, 50, 50));
     }
 
     /**
@@ -192,13 +260,18 @@ public class panel extends JPanel implements KeyListener {
      * 4. 维持敌人数量
      */
     private void updateGame() {
-        gameObjects.removeIf(obj -> !obj.isAlive());
+        // 安全地移除死亡对象，避免空指针
+        gameObjects.removeIf(obj -> obj != null && !obj.isAlive());
         
+        // 安全地更新所有对象
         for (GameObject obj : gameObjects) {
-            obj.update();
+            if (obj != null && obj.isAlive()) {
+                obj.update();
+            }
         }
 
-        if (!playerTank.isAlive()) {
+        // 检查玩家坦克状态
+        if (playerTank != null && !playerTank.isAlive()) {
             gameOver = true;
         }
 
@@ -245,9 +318,11 @@ public class panel extends JPanel implements KeyListener {
         g2d.setColor(Color.BLACK);
         g2d.fillRect(0, 0, GAME_WIDTH, GAME_HEIGHT);
         
-        // 绘制所有游戏对象
+        // 安全地绘制所有游戏对象
         for (GameObject obj : gameObjects) {
-            obj.draw(g2d);
+            if (obj != null && obj.isAlive()) {
+                obj.draw(g2d);
+            }
         }
         
         // 绘制UI

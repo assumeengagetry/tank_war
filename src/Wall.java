@@ -22,17 +22,39 @@ import java.awt.Graphics;
  *    - 通过视觉效果增强游戏体验
  */
 public class Wall extends GameObject {
+    /**
+     * 墙体类型枚举，为不同类型的墙体提供类型安全
+     */
+    public enum WallType {
+        BRICK_SINGLE(true, 3, "wall"),           // 单个砖墙
+        BRICK_GROUP(true, 5, "walls"),           // 砖墙组
+        STEEL_SINGLE(false, Integer.MAX_VALUE, "steel"),  // 单个钢墙
+        STEEL_GROUP(false, Integer.MAX_VALUE, "steels"),  // 钢墙组
+        STEEL_CROSSWISE(false, Integer.MAX_VALUE, "steelsCrosswise"), // 十字钢墙
+        STEEL_VERTICAL(false, Integer.MAX_VALUE, "steelsVertical");   // 垂直钢墙
+        
+        private final boolean breakable;
+        private final int maxDurability;
+        private final String imageName;
+        
+        WallType(boolean breakable, int maxDurability, String imageName) {
+            this.breakable = breakable;
+            this.maxDurability = maxDurability;
+            this.imageName = imageName;
+        }
+        
+        public boolean isBreakable() { return breakable; }
+        public int getMaxDurability() { return maxDurability; }
+        public String getImageName() { return imageName; }
+    }
+    
     // 墙体的核心属性
+    private final WallType wallType;    // 墙体类型
     private final boolean isBreakable; // final表示一旦创建就不能改变是否可破坏的属性
     private int durability;           // 当前耐久度，可以随着受损而减少
 
     /**
-     * 墙体构造器
-     * 展示了：
-     * 1. 如何使用父类构造器
-     * 2. 如何根据参数初始化对象状态
-     * 3. 条件运算符的使用
-     * 
+     * 传统墙体构造器（保持向后兼容）
      * @param x X坐标
      * @param y Y坐标
      * @param width 宽度
@@ -40,11 +62,41 @@ public class Wall extends GameObject {
      * @param breakable 是否可以被破坏
      */
     public Wall(int x, int y, int width, int height, boolean breakable) {
-        // 根据是否可破坏选择不同的墙体图片
-        super(x, y, width, height, breakable ? pictures.wall : pictures.steel);
-        this.isBreakable = breakable;
-        // 可破坏的墙有3点耐久度，不可破坏的墙设为最大值
-        this.durability = breakable ? 3 : Integer.MAX_VALUE;
+        this(x, y, width, height, breakable ? WallType.BRICK_SINGLE : WallType.STEEL_SINGLE);
+    }
+    
+    /**
+     * 增强的墙体构造器，支持指定墙体类型
+     * 展示了：
+     * 1. 枚举类型的使用
+     * 2. 更灵活的对象创建
+     * 3. 反射获取图片资源
+     * 
+     * @param x X坐标
+     * @param y Y坐标
+     * @param width 宽度
+     * @param height 高度
+     * @param wallType 墙体类型
+     */
+    public Wall(int x, int y, int width, int height, WallType wallType) {
+        super(x, y, width, height, getImageForWallType(wallType));
+        this.wallType = wallType;
+        this.isBreakable = wallType.isBreakable();
+        this.durability = wallType.getMaxDurability();
+    }
+    
+    /**
+     * 根据墙体类型获取对应的图片资源
+     * 使用反射机制动态获取pictures类中的对应字段
+     */
+    private static java.awt.image.BufferedImage getImageForWallType(WallType wallType) {
+        try {
+            java.lang.reflect.Field field = pictures.class.getField(wallType.getImageName());
+            return (java.awt.image.BufferedImage) field.get(null);
+        } catch (Exception e) {
+            System.err.println("无法加载墙体图片: " + wallType.getImageName());
+            return pictures.wall; // 默认使用普通墙体图片
+        }
     }
 
     /**
@@ -92,13 +144,17 @@ public class Wall extends GameObject {
         g.drawImage(image, x, y, width, height, null);
         
         // 为可破坏的墙添加视觉反馈
-        if (isBreakable && durability < 3) {
+        if (isBreakable && durability < wallType.getMaxDurability()) {
             // 根据耐久度选择不同的叠加颜色
-            Color overlayColor = switch (durability) {
-                case 2 -> new Color(255, 255, 0, 100);  // 黄色，轻微损坏
-                case 1 -> new Color(255, 0, 0, 100);    // 红色，严重损坏
-                default -> new Color(0, 0, 0, 0);       // 透明
-            };
+            int maxDurability = wallType.getMaxDurability();
+            Color overlayColor;
+            if (durability > maxDurability * 0.6) {
+                overlayColor = new Color(255, 255, 0, 80);   // 黄色，轻微损坏
+            } else if (durability > maxDurability * 0.3) {
+                overlayColor = new Color(255, 165, 0, 120);  // 橙色，中度损坏
+            } else {
+                overlayColor = new Color(255, 0, 0, 160);    // 红色，严重损坏
+            }
             
             // 使用半透明颜色覆盖来显示损坏状态
             g.setColor(overlayColor);
@@ -120,5 +176,39 @@ public class Wall extends GameObject {
      */
     public int getDurability() {
         return durability;
+    }
+    
+    /**
+     * 获取墙体类型
+     */
+    public WallType getWallType() {
+        return wallType;
+    }
+    
+    /**
+     * 创建不同类型墙体的工厂方法
+     */
+    public static Wall createBrickWall(int x, int y, int width, int height) {
+        return new Wall(x, y, width, height, WallType.BRICK_SINGLE);
+    }
+    
+    public static Wall createBrickGroup(int x, int y, int width, int height) {
+        return new Wall(x, y, width, height, WallType.BRICK_GROUP);
+    }
+    
+    public static Wall createSteelWall(int x, int y, int width, int height) {
+        return new Wall(x, y, width, height, WallType.STEEL_SINGLE);
+    }
+    
+    public static Wall createSteelGroup(int x, int y, int width, int height) {
+        return new Wall(x, y, width, height, WallType.STEEL_GROUP);
+    }
+    
+    public static Wall createSteelCrosswise(int x, int y, int width, int height) {
+        return new Wall(x, y, width, height, WallType.STEEL_CROSSWISE);
+    }
+    
+    public static Wall createSteelVertical(int x, int y, int width, int height) {
+        return new Wall(x, y, width, height, WallType.STEEL_VERTICAL);
     }
 }

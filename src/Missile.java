@@ -38,8 +38,8 @@ public class Missile extends GameObject {
      * @param owner 发射者
      */
     public Missile(int x, int y, Direction direction, Tank owner) {
-        super(x, y, 10, 10, pictures.tankMissile); 
-        this.speed = 10;         // 导弹速度比坦克快
+        super(x, y, 8, 8, pictures.tankMissile);  // 使用导弹图片，稍微小一些
+        this.speed = 12;         // 导弹速度比坦克快
         this.direction = direction;
         this.tankOwner = owner;
     }
@@ -64,14 +64,18 @@ public class Missile extends GameObject {
             case RIGHT -> x += speed;
         }
 
-        // 处理边界碰撞，展示了物理系统的实现
+        // 处理边界碰撞，实现光线反射效果
         boolean bounced = false;
         if (x <= 0 || x >= 800 - width) {
             x = oldX;         // 碰撞时恢复到原位置
+            // 实现水平反射
+            direction = (direction == Direction.LEFT) ? Direction.RIGHT : Direction.LEFT;
             bounced = true;
         }
         if (y <= 0 || y >= 600 - height) {
             y = oldY;
+            // 实现垂直反射
+            direction = (direction == Direction.UP) ? Direction.DOWN : Direction.UP;
             bounced = true;
         }
 
@@ -86,6 +90,7 @@ public class Missile extends GameObject {
      * 展示了：
      * 1. 多态的应用 - 不同对象有不同的碰撞处理
      * 2. 对象交互 - 如何处理对象间的碰撞
+     * 3. 基于对象类型的不同反应
      * 
      * @param other 发生碰撞的另一个游戏对象
      */
@@ -93,22 +98,84 @@ public class Missile extends GameObject {
     public void handleCollision(GameObject other) {
         if (!isCollidable() || !isAlive) return;
         
-        // 与除发射者外的任何对象碰撞都会消失
-        if (other != tankOwner) {
+        // 与发射者不碰撞
+        if (other == tankOwner) return;
+        
+        // 与草地碰撞：穿透但摧毁植被（在Grass类中处理）
+        if (other instanceof Grass) {
+            // 导弹继续飞行，不消失（穿透效果）
+            return;
+        }
+        
+        // 与河水碰撞：穿透不受影响
+        if (other instanceof Water) {
+            // 导弹穿透河水，不消失
+            return;
+        }
+        
+        // 与墙体碰撞：反射或消失
+        if (other instanceof Wall) {
+            Wall wall = (Wall) other;
+            if (wall.isBreakable()) {
+                // 与可破坏墙体碰撞后消失
+                isAlive = false;
+            } else {
+                // 与不可破坏墙体碰撞后反射
+                handleWallReflection(wall);
+            }
+            return;
+        }
+        
+        // 与其他对象碰撞都会消失
+        isAlive = false;
+    }
+    
+    /**
+     * 处理与墙体的反射
+     * 实现光线反射物理效果
+     */
+    private void handleWallReflection(Wall wall) {
+        // 简单的反射逻辑：根据导弹位置和墙体位置确定反射方向
+        int missileCenter = x + width / 2;
+        int wallCenter = wall.x + wall.width / 2;
+        
+        if (Math.abs(missileCenter - wallCenter) > Math.abs((y + height / 2) - (wall.y + wall.height / 2))) {
+            // 水平反射
+            direction = (direction == Direction.LEFT) ? Direction.RIGHT : Direction.LEFT;
+        } else {
+            // 垂直反射
+            direction = (direction == Direction.UP) ? Direction.DOWN : Direction.UP;
+        }
+        
+        maxBounces--;
+        if (maxBounces <= 0) {
             isAlive = false;
         }
     }
 
     /**
      * 绘制导弹
-     * 展示了条件渲染 - 只有存活的导弹才会被绘制
+     * 展示了条件渲染和增强的视觉效果
      * 
      * @param g Graphics对象，用于绘制
      */
     @Override
     public void draw(Graphics g) {
-        if (isAlive) {
-            g.drawImage(image, x, y, width, height, null); 
+        if (!isAlive) return;
+        
+        // 绘制导弹主体
+        g.drawImage(image, x, y, width, height, null);
+        
+        // 添加尾迹效果（根据方向绘制）
+        Graphics2D g2d = (Graphics2D) g;
+        g2d.setColor(new Color(255, 255, 0, 100));  // 半透明黄色
+        
+        int trailLength = 6;
+        switch (direction) {
+            case UP -> g2d.fillOval(x, y + height, width, trailLength);
+            case DOWN -> g2d.fillOval(x, y - trailLength, width, trailLength);
+            case LEFT -> g2d.fillOval(x + width, y, trailLength, height);
+            case RIGHT -> g2d.fillOval(x - trailLength, y, trailLength, height);
         }
     }
 
@@ -130,6 +197,20 @@ public class Missile extends GameObject {
      */
     public Tank getSource() {
         return tankOwner;
+    }
+    
+    /**
+     * 获取导弹当前的飞行方向
+     */
+    public Direction getDirection() {
+        return direction;
+    }
+    
+    /**
+     * 获取剩余反弹次数
+     */
+    public int getRemainingBounces() {
+        return maxBounces;
     }
 }
 
